@@ -10,10 +10,10 @@ class MockSuccess extends MockPaymentResult{
   MockSuccess(this.transactionId);
 }
 
-class Mock3DRequired extends MockPaymentResult{
+class Mock3DSRequired extends MockPaymentResult{
   final String redirectUrl;
 
-  Mock3DRequired(this.redirectUrl);
+  Mock3DSRequired(this.redirectUrl);
   
 }
 
@@ -30,7 +30,7 @@ class MockCheckoutRepository{
   return MockSuccess(randomTxId);
 
  }else if(rawNumber.endsWith('2222')){
-  return Mock3DRequired('https://example.com/3dsecure');
+  return Mock3DSRequired('https://example.com/3dsecure');
  }else{
   return MockFailure('Payment failed. Please try again.');
  }
