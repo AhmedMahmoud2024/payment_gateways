@@ -13,5 +13,5 @@ class CardInputModel {
 
     String  get  rawCardNumber =>cardNumber.replaceAll(
       RegExp(r'\s+|-'), ''
-      );
+      ).trim();
 }

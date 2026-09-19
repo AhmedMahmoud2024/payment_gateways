@@ -1,24 +1,34 @@
 import 'package:meta/meta.dart';
 
 @immutable
-sealed class CheckoutState{
+sealed class CheckoutState {
   const CheckoutState();
 }
-class CheckoutInitial extends CheckoutState{
+
+// 1. الحالة المبدئية: الشاشة لسه مفرغة
+class CheckoutInitial extends CheckoutState {
   const CheckoutInitial();
 }
-class CheckoutLoading extends CheckoutState{
+
+// 2. حالة التحميل: جاري التحدث مع الـ Server وضبط الـ UI للانتظار
+class CheckoutLoading extends CheckoutState {
   const CheckoutLoading();
 }
-class CheckoutSuccess extends CheckoutState{
- final String transactionId;
+
+// 3. حالة النجاح: العملية تمت وبنرجع رقم الشحنة/المعاملة
+class CheckoutSuccess extends CheckoutState {
+  final String transactionId;
   const CheckoutSuccess(this.transactionId);
 }
-class Checkout3DSRequired extends CheckoutState{
- final String redirectUrl;
+
+// 4. حالة التوجيه لصفحة تأكيد البنك (3DS)
+class Checkout3DSRequired extends CheckoutState {
+  final String redirectUrl;
   const Checkout3DSRequired(this.redirectUrl);
 }
-class CheckoutFailure extends CheckoutState{
- final String errorMessage;
+
+// 5. حالة الفشل: حدث خطأ في الـ Validation أو السيرفر مرفوض
+class CheckoutFailure extends CheckoutState {
+  final String errorMessage;
   const CheckoutFailure(this.errorMessage);
 }

@@ -46,9 +46,18 @@ if(!CardValidator.isValidCVV(card.cvv)){
   }catch(e){
  state = const CheckoutFailure('Payment failed!,please try again');
   }
- void reset(){
+ 
+  }
+  void reset(){
     state = const CheckoutInitial();
  }
+
+ // استكمال عملية الـ 3DS بعد العودة من الـ WebView
+void complete3DSPayment({required bool isApproved}) {
+  if (isApproved) {
+    state = CheckoutSuccess('TXN_3DS_${DateTime.now().millisecondsSinceEpoch}');
+  } else {
+    state = const CheckoutFailure('تم إلغاء العملية أو فشل التحقق المالي (3DS).');
   }
-  
+}
 }
