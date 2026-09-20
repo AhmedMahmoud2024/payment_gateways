@@ -3,7 +3,7 @@ class CardValidator {
   // 1. خوارزمية Luhn Algorithm
   static bool isValidCardNumber(String cardNumber) {
     // تنظيف الرقم من المسافات
-    final cleanNumber = cardNumber.replaceAll(RegExp(r'\s+|-'), '');
+    final cleanNumber = cardNumber.replaceAll(RegExp(r'\D'), '').trim();
     
     if (cleanNumber.isEmpty || cleanNumber.length < 13 || cleanNumber.length > 19) {
       return false;
