@@ -23,7 +23,7 @@ class MockFailure extends MockPaymentResult {
 class MockCheckoutRepository {
   Future<MockPaymentResult> processCardPayment(CardInputModel card) async {
     // بنعمل تأخير وهمي لمدة ثانيتين للـ Network Request
-    await Future.delayed(const Duration(microseconds: 2));
+    await Future.delayed(const Duration(seconds: 2));
 
     final rawNumber = card.rawCardNumber.replaceAll(RegExp(r'\D'), '').trim();
 
