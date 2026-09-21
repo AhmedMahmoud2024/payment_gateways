@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:payment_gateways/features/checkout/data/models/card_input_model.dart';
+import 'package:payment_gateways/features/checkout/data/models/wallet_input_model.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_notifier.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_state.dart';
 import 'package:payment_gateways/features/checkout/presentation/screens/3ds_screen.dart';
@@ -35,9 +36,9 @@ class CardExpiryInputFormatter extends TextInputFormatter {
   }
 }
 
-// ==========================================
-// 2. CHECKOUT PAGE (MAIN UI)
-// ==========================================
+
+enum PaymentMethodType { card, wallet }
+
 class CheckoutPage extends ConsumerStatefulWidget {
   const CheckoutPage({super.key});
 
@@ -46,10 +47,17 @@ class CheckoutPage extends ConsumerStatefulWidget {
 }
 
 class _CheckoutPageState extends ConsumerState<CheckoutPage> {
+  PaymentMethodType _selectedMethod = PaymentMethodType.card;
+
+  // Controllers للكارت
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
+
+  // Controllers للمحفظة والـ OTP
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
 
   @override
   void dispose() {
@@ -57,28 +65,37 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     _expiryController.dispose();
     _cvvController.dispose();
     _nameController.dispose();
+    _phoneController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
   void _submitPayment() {
-    // إخفاء أي لوحة مفاتيح أو فوكس
     FocusScope.of(context).unfocus();
 
-    final cardInput = CardInputModel(
-      cardNumber: _cardNumberController.text,
-      expiryDate: _expiryController.text,
-      cvv: _cvvController.text,
-      cardHolderName: _nameController.text,
-    );
-
-    ref.read(checkoutProvider.notifier).payWithCard(cardInput);
+    if (_selectedMethod == PaymentMethodType.card) {
+      final cardInput = CardInputModel(
+        cardNumber: _cardNumberController.text,
+        expiryDate: _expiryController.text,
+        cvv: _cvvController.text,
+        cardHolderName: _nameController.text,
+      );
+      ref.read(checkoutProvider.notifier).payWithCard(cardInput);
+    } else {
+      final walletInput = WalletInputModel(
+        phoneNumber: _phoneController.text,
+      );
+      ref.read(checkoutProvider.notifier).payWithWallet(walletInput);
+    }
   }
 
-  void _clearForm() {
+  void _clearAllInputs() {
     _cardNumberController.clear();
     _expiryController.clear();
     _cvvController.clear();
     _nameController.clear();
+    _phoneController.clear();
+    _otpController.clear();
   }
 
   @override
@@ -88,7 +105,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('شاشة الدفع - Checkout'),
+        title: const Text('بوابة الدفع'),
         centerTitle: true,
       ),
       body: Center(
@@ -100,14 +117,30 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.payment,
-                    size: 64,
-                    color: Colors.blue,
+                  // 1. Selector Tabs
+                  SegmentedButton<PaymentMethodType>(
+                    segments: const [
+                      ButtonSegment(
+                        value: PaymentMethodType.card,
+                        label: Text('بطاقة ائتمان'),
+                        icon: Icon(Icons.credit_card),
+                      ),
+                      ButtonSegment(
+                        value: PaymentMethodType.wallet,
+                        label: Text('محفظة إلكترونية'),
+                        icon: Icon(Icons.account_balance_wallet),
+                      ),
+                    ],
+                    selected: {_selectedMethod},
+                    onSelectionChanged: (Set<PaymentMethodType> selection) {
+                      setState(() {
+                        _selectedMethod = selection.first;
+                      });
+                    },
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // عرض رسالة الخطأ لو الـ State فشلت
+                  // 2. Feedback Containers (Errors / Success / OTP)
                   if (state is CheckoutFailure) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -132,7 +165,6 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                     const SizedBox(height: 16),
                   ],
 
-                  // عرض كارت النجاح لو العملية نجحت
                   if (state is CheckoutSuccess) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -146,7 +178,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                           const Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
                           const SizedBox(height: 8),
                           const Text(
-                            'تمت العملية بنجاح! 🎉',
+                            'تمت العملية بنجاح!',
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
                           ),
                           const SizedBox(height: 4),
@@ -154,7 +186,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                           const SizedBox(height: 12),
                           ElevatedButton(
                             onPressed: () {
-                              _clearForm();
+                              _clearAllInputs();
                               ref.read(checkoutProvider.notifier).reset();
                             },
                             child: const Text('إجراء عملية جديدة'),
@@ -165,39 +197,40 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                     const SizedBox(height: 20),
                   ],
 
-                  // عرض زر التحويل للـ 3DS لو مطلوبة
-                  if (state is Checkout3DSRequired) ...[
+                  if (state is CheckoutOTPRequired) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
+                        color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.shade300),
+                        border: Border.all(color: Colors.blue.shade300),
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.security, color: Colors.orange, size: 48),
+                          const Icon(Icons.phonelink_ring, color: Colors.blue, size: 40),
                           const SizedBox(height: 8),
-                          const Text(
-                            'مطلوب تأكيد البنك (3D Secure)',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          Text(
+                            'تم إرسال رمز OTP إلى: ${state.phoneNumber}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 12),
+                          TextField(
+                            controller: _otpController,
+                            keyboardType: TextInputType.number,
+                            maxLength: 4,
+                            decoration: const InputDecoration(
+                              labelText: 'رمز OTP (أدخل 1234)',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
-                            onPressed: () async {
-                              final bool? isApproved = await Navigator.of(context).push<bool>(
-                                MaterialPageRoute(
-                                  builder: (ctx) => ThreeDSWebViewPage(redirectUrl: state.redirectUrl),
-                                ),
-                              );
-                              if (mounted) {
-                                ref.read(checkoutProvider.notifier).complete3DSPayment(
-                                      isApproved: isApproved ?? false,
-                                    );
-                              }
-                            },
-                            child: const Text('افتح صفحة التأكيد الآن'),
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    ref.read(checkoutProvider.notifier).submitOTP(_otpController.text);
+                                  },
+                            child: const Text('تأكيد الرمز'),
                           ),
                         ],
                       ),
@@ -205,74 +238,82 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                     const SizedBox(height: 20),
                   ],
 
-                  // 1. حقل رقم الكارت
-                  TextField(
-                    controller: _cardNumberController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 19,
-                    enabled: !isLoading,
-                    decoration: const InputDecoration(
-                      labelText: 'رقم البطاقة',
-                      hintText: '4242 4242 4242 2222',
-                      prefixIcon: Icon(Icons.credit_card),
-                      border: OutlineInputBorder(),
+                  // 3. Conditional Form Fields
+                  if (_selectedMethod == PaymentMethodType.card) ...[
+                    TextField(
+                      controller: _cardNumberController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 19,
+                      enabled: !isLoading,
+                      decoration: const InputDecoration(
+                        labelText: 'رقم البطاقة',
+                        hintText: '4242 4242 4242 1111',
+                        prefixIcon: Icon(Icons.credit_card),
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 2. حقول تاريخ الانتهاء والـ CVV
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _expiryController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 5,
-                          enabled: !isLoading,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            CardExpiryInputFormatter(),
-                          ],
-                          decoration: const InputDecoration(
-                            labelText: 'تاريخ الانتهاء',
-                            hintText: 'MM/YY',
-                            border: OutlineInputBorder(),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _expiryController,
+                            keyboardType: TextInputType.number,
+                            maxLength: 5,
+                            enabled: !isLoading,
+                            decoration: const InputDecoration(
+                              labelText: 'تاريخ الانتهاء',
+                              hintText: '12/28',
+                              border: OutlineInputBorder(),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _cvvController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 4,
-                          obscureText: true,
-                          enabled: !isLoading,
-                          decoration: const InputDecoration(
-                            labelText: 'CVV',
-                            hintText: '123',
-                            border: OutlineInputBorder(),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _cvvController,
+                            keyboardType: TextInputType.number,
+                            maxLength: 4,
+                            obscureText: true,
+                            enabled: !isLoading,
+                            decoration: const InputDecoration(
+                              labelText: 'CVV',
+                              hintText: '123',
+                              border: OutlineInputBorder(),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 3. حقل اسم صاحب الكارت
-                  TextField(
-                    controller: _nameController,
-                    keyboardType: TextInputType.name,
-                    enabled: !isLoading,
-                    decoration: const InputDecoration(
-                      labelText: 'اسم صاحب البطاقة',
-                      hintText: 'Ahmed Mahmoud',
-                      border: OutlineInputBorder(),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _nameController,
+                      enabled: !isLoading,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم صاحب البطاقة',
+                        hintText: 'Ahmed Mahmoud',
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ] else ...[
+                    TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 11,
+                      enabled: !isLoading,
+                      decoration: const InputDecoration(
+                        labelText: 'رقم المحفظة الإلكترونية',
+                        hintText: '01012345678 (تنتهي بـ 0000 لطلب OTP)',
+                        prefixIcon: Icon(Icons.phone_android),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 24),
 
-                  // 4. زر الدفع
+                  // 4. Submit Button
                   ElevatedButton(
                     onPressed: isLoading ? null : _submitPayment,
                     style: ElevatedButton.styleFrom(
@@ -284,14 +325,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                         ? const SizedBox(
                             height: 24,
                             width: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                           )
-                        : const Text(
-                            'ادفع الآن',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        : Text(
+                            _selectedMethod == PaymentMethodType.card ? 'ادفع الآن' : 'تأكيد ودفع بالمحفظة',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                   ),
                 ],

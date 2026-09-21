@@ -1,17 +1,69 @@
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:payment_gateways/features/checkout/data/models/card_input_model.dart';
+import 'package:payment_gateways/features/checkout/data/models/wallet_input_model.dart';
 import 'package:payment_gateways/features/checkout/data/repositories/mock_checkout_repository.dart';
+import 'package:payment_gateways/features/checkout/data/repositories/mock_wallet_repository.dart';
 import 'package:payment_gateways/features/checkout/data/utils/card_validator.dart';
+import 'package:payment_gateways/features/checkout/data/utils/wallet_validator.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+enum PaymentMwthodType{card,wallet}
+
 final checkoutProvider = StateNotifierProvider<CheckoutNotifier,CheckoutState>((ref){
-return CheckoutNotifier(MockCheckoutRepository());
+return CheckoutNotifier(
+  MockCheckoutRepository(),
+  MockWalletRepository()
+  );
 });
 
 class CheckoutNotifier extends StateNotifier<CheckoutState>{
-  final MockCheckoutRepository _repository;  
-  CheckoutNotifier(this._repository):super(const CheckoutInitial());
+  final MockCheckoutRepository _cardRepository;  
+    final MockWalletRepository _walletRepository;  
+  CheckoutNotifier(
+    this._cardRepository,
+  this._walletRepository
+  ):super(const CheckoutInitial());
+
+Future<void> payWithWallet(WalletInputModel wallet)async{
+ if(!WalletValidator.isValidEgyptianPhone(wallet.phoneNumber)){
+ state = CheckoutFailure('Number must start with 01');
+ return;
+ }
+ state = const CheckoutLoading();
+ try{
+   final result = await _walletRepository.processWalletPayment(wallet);
+   _handleResult(result);
+ }catch(e){
+ state = CheckoutFailure('Unexpected Error Has occured');
+ }
+}
+void _handleResult(MockPaymentResult result) {
+    if (result is MockSuccess) {
+      state = CheckoutSuccess(result.transactionId);
+    } else if (result is Mock3DSRequired) {
+      state = Checkout3DSRequired(result.redirectUrl);
+    } else if (result is MockWalletOTPRequired) {
+      state = CheckoutOTPRequired(result.phoneNumber); // ✅ تصحيح الاسم هنا
+    } else if (result is MockFailure) {
+      state = CheckoutFailure(result.errorMessage);
+    }
+  }
+
+Future<void> submitOTP( String code)async{
+if(code.trim().isEmpty){
+  state = const CheckoutFailure('Please enter the otp code');
+  return;
+}
+state= const CheckoutLoading();
+ try{
+   final result = await _walletRepository.verifyOtp(code);
+   _handleResult(result);
+ }catch(e){
+ state = CheckoutFailure('Unexpected Error Has occured');
+ }
+
+}
 
  Future<void> payWithCard(CardInputModel card)async{
 if(!CardValidator.isValidCardNumber(card.cardNumber)){
@@ -33,7 +85,9 @@ if(!CardValidator.isValidCVV(card.cvv)){
   }
   state = const CheckoutLoading();
   try{
-    final result = await _repository.processCardPayment(card);
+    final result = await _cardRepository.processCardPayment(card);
+    _handleResult(result);
+ /*
   if(result is MockSuccess){
     state = CheckoutSuccess(result.transactionId);
   }else if(result is Mock3DSRequired){
@@ -43,11 +97,13 @@ if(!CardValidator.isValidCVV(card.cvv)){
     state = CheckoutFailure(result.errorMessage);
 
   }
+  */
   }catch(e){
  state = const CheckoutFailure('Payment failed!,please try again');
   }
  
   }
+  
   void reset(){
     state = const CheckoutInitial();
  }

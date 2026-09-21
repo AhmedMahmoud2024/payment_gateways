@@ -32,3 +32,7 @@ class CheckoutFailure extends CheckoutState {
   final String errorMessage;
   const CheckoutFailure(this.errorMessage);
 }
+class CheckoutOTPRequired extends CheckoutState {
+  final String phoneNumber;
+  const CheckoutOTPRequired(this.phoneNumber);
+}
