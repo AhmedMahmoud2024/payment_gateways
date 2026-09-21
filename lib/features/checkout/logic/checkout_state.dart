@@ -36,3 +36,16 @@ class CheckoutOTPRequired extends CheckoutState {
   final String phoneNumber;
   const CheckoutOTPRequired(this.phoneNumber);
 }
+
+class CheckoutFawryCodeGenerated extends CheckoutState{
+  final String referenceNumber;
+  final String expireTime;
+
+ const CheckoutFawryCodeGenerated({
+    required this.referenceNumber,
+     required this.expireTime
+     });
+
+   List<Object?> get props=>[referenceNumber, expireTime];
+  
+}

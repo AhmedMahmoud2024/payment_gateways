@@ -18,7 +18,7 @@ class MockFawryRepository{
   if(input.cleanEmail.contains('fail')){
     return MockFailure('Failed to generate Fawry code, please try again');
   }
-  final refNumber = (1000000 + (DateTime.now().millisecondsSinceEpoch % 8999999999)).toString();
+  final refNumber = (1000000000 + (DateTime.now().millisecondsSinceEpoch % 8999999999)).toString();
   return MockFawryCodeGenerated(referenceNumber: refNumber, expireTimel: '6 hours');
   }
   }
