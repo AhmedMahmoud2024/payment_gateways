@@ -46,6 +46,7 @@ class CheckoutFawryCodeGenerated extends CheckoutState{
      required this.expireTime
      });
 
+   @override
    List<Object?> get props=>[referenceNumber, expireTime];
   
 }

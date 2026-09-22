@@ -3,11 +3,11 @@ import 'package:payment_gateways/features/checkout/data/repositories/mock_checko
 
 class MockFawryCodeGenerated extends MockPaymentResult {
 final String referenceNumber;
-final String expireTimel;
+final String expireTime;
 
   MockFawryCodeGenerated({
     required this.referenceNumber,
-     required this.expireTimel
+     required this.expireTime
      });
 
 }
@@ -19,6 +19,6 @@ class MockFawryRepository{
     return MockFailure('Failed to generate Fawry code, please try again');
   }
   final refNumber = (1000000000 + (DateTime.now().millisecondsSinceEpoch % 8999999999)).toString();
-  return MockFawryCodeGenerated(referenceNumber: refNumber, expireTimel: '6 hours');
+  return MockFawryCodeGenerated(referenceNumber: refNumber, expireTime: '6 hours');
   }
   }

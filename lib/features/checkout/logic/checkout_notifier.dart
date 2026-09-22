@@ -1,29 +1,54 @@
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:payment_gateways/features/checkout/data/models/card_input_model.dart';
+import 'package:payment_gateways/features/checkout/data/models/fawry_input_model.dart';
 import 'package:payment_gateways/features/checkout/data/models/wallet_input_model.dart';
 import 'package:payment_gateways/features/checkout/data/repositories/mock_checkout_repository.dart';
+import 'package:payment_gateways/features/checkout/data/repositories/mock_fawry_repository.dart';
 import 'package:payment_gateways/features/checkout/data/repositories/mock_wallet_repository.dart';
 import 'package:payment_gateways/features/checkout/data/utils/card_validator.dart';
+import 'package:payment_gateways/features/checkout/data/utils/fawry_validator.dart';
 import 'package:payment_gateways/features/checkout/data/utils/wallet_validator.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum PaymentMwthodType{card,wallet}
+enum PaymentMwthodType{card,wallet,fawry}
 
 final checkoutProvider = StateNotifierProvider<CheckoutNotifier,CheckoutState>((ref){
 return CheckoutNotifier(
   MockCheckoutRepository(),
-  MockWalletRepository()
+  MockWalletRepository(),
+  MockFawryRepository()
   );
 });
 
 class CheckoutNotifier extends StateNotifier<CheckoutState>{
   final MockCheckoutRepository _cardRepository;  
-    final MockWalletRepository _walletRepository;  
+    final MockWalletRepository _walletRepository; 
+    final MockFawryRepository _fawryRepository; 
   CheckoutNotifier(
     this._cardRepository,
-  this._walletRepository
+  this._walletRepository,
+  this._fawryRepository
   ):super(const CheckoutInitial());
+
+Future<void> payWithFawry(FawryInputModel input)async{
+ if(!FawryValidator.isValidEmail(input.email)){
+ state = const CheckoutFailure('Invalid email address,please check it again');
+ return;
+ }
+ if(!FawryValidator.isValidPhone(input.phoneNumber)){
+ state = const CheckoutFailure('Invalid phone number,please check it again');
+ return;
+ }
+ state = const CheckoutLoading();
+try{
+ final result = await _fawryRepository.generateFawryCode(input);
+ _handleResult(result);
+}catch(_){
+
+ state = const CheckoutFailure('Unexpected Error while generating Fawry code ,please try again');
+}
+}
 
 Future<void> payWithWallet(WalletInputModel wallet)async{
  if(!WalletValidator.isValidEgyptianPhone(wallet.phoneNumber)){
@@ -45,7 +70,12 @@ void _handleResult(MockPaymentResult result) {
       state = Checkout3DSRequired(result.redirectUrl);
     } else if (result is MockWalletOTPRequired) {
       state = CheckoutOTPRequired(result.phoneNumber); // ✅ تصحيح الاسم هنا
-    } else if (result is MockFailure) {
+    } else if (result is MockFawryCodeGenerated) {
+      state = CheckoutFawryCodeGenerated(
+        referenceNumber: result.referenceNumber,
+        expireTime: result.expireTime
+      );
+    }else if (result is MockFailure) {
       state = CheckoutFailure(result.errorMessage);
     }
   }
