@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:payment_gateways/features/checkout/data/models/card_input_model.dart';
+import 'package:payment_gateways/features/checkout/data/models/fawry_input_model.dart';
 import 'package:payment_gateways/features/checkout/data/models/wallet_input_model.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_notifier.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_state.dart';
@@ -37,7 +38,9 @@ class CardExpiryInputFormatter extends TextInputFormatter {
 }
 
 
-enum PaymentMethodType { card, wallet }
+enum PaymentMethodType { card, wallet ,fawry}
+
+
 
 class CheckoutPage extends ConsumerStatefulWidget {
   const CheckoutPage({super.key});
@@ -47,17 +50,22 @@ class CheckoutPage extends ConsumerStatefulWidget {
 }
 
 class _CheckoutPageState extends ConsumerState<CheckoutPage> {
+  // حالة الوسيلة المختارة
   PaymentMethodType _selectedMethod = PaymentMethodType.card;
 
-  // Controllers للكارت
+  // Controllers بطاقة الائتمان
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
 
-  // Controllers للمحفظة والـ OTP
+  // Controllers المحفظة والـ OTP
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
+
+  // Controllers فوري
+  final _fawryPhoneController = TextEditingController();
+  final _fawryEmailController = TextEditingController();
 
   @override
   void dispose() {
@@ -67,6 +75,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     _nameController.dispose();
     _phoneController.dispose();
     _otpController.dispose();
+    _fawryPhoneController.dispose();
+    _fawryEmailController.dispose();
     super.dispose();
   }
 
@@ -81,11 +91,17 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         cardHolderName: _nameController.text,
       );
       ref.read(checkoutProvider.notifier).payWithCard(cardInput);
-    } else {
+    } else if (_selectedMethod == PaymentMethodType.wallet) {
       final walletInput = WalletInputModel(
         phoneNumber: _phoneController.text,
       );
       ref.read(checkoutProvider.notifier).payWithWallet(walletInput);
+    } else if (_selectedMethod == PaymentMethodType.fawry) {
+      final fawryInput = FawryInputModel(
+        phoneNumber: _fawryPhoneController.text,
+        email: _fawryEmailController.text,
+      );
+      ref.read(checkoutProvider.notifier).payWithFawry(fawryInput);
     }
   }
 
@@ -96,6 +112,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     _nameController.clear();
     _phoneController.clear();
     _otpController.clear();
+    _fawryPhoneController.clear();
+    _fawryEmailController.clear();
   }
 
   @override
@@ -105,7 +123,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('بوابة الدفع'),
+        title: const Text('بوابة الدفع الإلكتروني'),
         centerTitle: true,
       ),
       body: Center(
@@ -117,18 +135,23 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 1. Selector Tabs
+                  // 1. زرار التبديل بين طرق الدفع الثلاثة
                   SegmentedButton<PaymentMethodType>(
                     segments: const [
                       ButtonSegment(
                         value: PaymentMethodType.card,
-                        label: Text('بطاقة ائتمان'),
+                        label: Text('بطاقة'),
                         icon: Icon(Icons.credit_card),
                       ),
                       ButtonSegment(
                         value: PaymentMethodType.wallet,
-                        label: Text('محفظة إلكترونية'),
+                        label: Text('محفظة'),
                         icon: Icon(Icons.account_balance_wallet),
+                      ),
+                      ButtonSegment(
+                        value: PaymentMethodType.fawry,
+                        label: Text('فوري'),
+                        icon: Icon(Icons.store),
                       ),
                     ],
                     selected: {_selectedMethod},
@@ -140,7 +163,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // 2. Feedback Containers (Errors / Success / OTP)
+                  // 2. Dynamic Feedback Containers (Errors / Success / OTP / Fawry Code)
                   if (state is CheckoutFailure) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -238,7 +261,55 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                     const SizedBox(height: 20),
                   ],
 
-                  // 3. Conditional Form Fields
+                  if (state is CheckoutFawryCodeGenerated) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.shade400),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.receipt_long, color: Colors.amber, size: 48),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'كود الدفع عبر فوري',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          SelectableText(
+                            state.referenceNumber,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text('صالح لمدة: ${state.expireTime}'),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'يرجى التوجه لأقرب منفذ فوري وسداد المبلغ باستخدام الرقم المرجعي أعلاه.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 12, color: Colors.black54),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () {
+                              _clearAllInputs();
+                              ref.read(checkoutProvider.notifier).reset();
+                            },
+                            child: const Text('عملية جديدة'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // 3. Render Form Fields حسب الوسيلة المختارة
                   if (_selectedMethod == PaymentMethodType.card) ...[
                     TextField(
                       controller: _cardNumberController,
@@ -296,7 +367,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-                  ] else ...[
+                  ] else if (_selectedMethod == PaymentMethodType.wallet) ...[
                     TextField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
@@ -304,8 +375,33 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                       enabled: !isLoading,
                       decoration: const InputDecoration(
                         labelText: 'رقم المحفظة الإلكترونية',
-                        hintText: '01012345678 (تنتهي بـ 0000 لطلب OTP)',
+                        hintText: '01012345678 (ينتهي بـ 0000 لاختبار OTP)',
                         prefixIcon: Icon(Icons.phone_android),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ] else if (_selectedMethod == PaymentMethodType.fawry) ...[
+                    TextField(
+                      controller: _fawryPhoneController,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 11,
+                      enabled: !isLoading,
+                      decoration: const InputDecoration(
+                        labelText: 'رقم المحمول',
+                        hintText: '01012345678',
+                        prefixIcon: Icon(Icons.phone),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _fawryEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      enabled: !isLoading,
+                      decoration: const InputDecoration(
+                        labelText: 'البريد الإلكتروني',
+                        hintText: 'example@domain.com',
+                        prefixIcon: Icon(Icons.email),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -313,7 +409,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
                   const SizedBox(height: 24),
 
-                  // 4. Submit Button
+                  // 4. Action Button
                   ElevatedButton(
                     onPressed: isLoading ? null : _submitPayment,
                     style: ElevatedButton.styleFrom(
@@ -328,7 +424,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                           )
                         : Text(
-                            _selectedMethod == PaymentMethodType.card ? 'ادفع الآن' : 'تأكيد ودفع بالمحفظة',
+                            _selectedMethod == PaymentMethodType.card
+                                ? 'ادفع الآن'
+                                : _selectedMethod == PaymentMethodType.wallet
+                                    ? 'تأكيد ودفع بالمحفظة'
+                                    : 'إصدار كود فوري',
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                   ),
