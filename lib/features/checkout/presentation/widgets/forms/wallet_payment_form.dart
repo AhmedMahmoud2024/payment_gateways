@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_notifier.dart';
 import 'package:payment_gateways/features/checkout/logic/forms/wallet_form_controller.dart';
-import 'package:payment_gateways/features/checkout/logic/strategies/payment_strategy.dart';
+import 'package:payment_gateways/features/checkout/logic/strategies/wallet_payment_strategy.dart';
 import 'package:payment_gateways/features/checkout/logic/validators/payment_validator.dart';
 
 
