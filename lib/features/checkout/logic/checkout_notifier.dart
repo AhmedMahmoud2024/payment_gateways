@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:payment_gateways/features/checkout/logic/strategies/digital_wallet_strategy.dart';
 import 'checkout_state.dart';
 import 'strategies/payment_strategy.dart';
 
@@ -13,6 +14,23 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
       state = resultState;
     } catch (e) {
       state = CheckoutFailure('حدث خطأ غير متوقع: ${e.toString()}');
+    }
+  }
+
+  ///  الميثود الجديدة الخاصة بالـ Digital Wallet (المحفظة الرقمية ذات الرصيد الفعلي)
+  Future<void> executeDigitalWalletPayment(DigitalWalletPaymentStrategy walletStrategy, double amount) async {
+    state = const CheckoutLoading();
+    try {
+      // 1. تنفيذ عملية الدفع والخصم من المحفظة
+      final isSuccess = await walletStrategy.pay(amount);
+      
+      if (isSuccess) {
+        // 2. لو نجحت، بنحدث الحالة لنجاح المعاملة مع إرجاع كود أو رقم مرجعي وهمي
+        state = const CheckoutSuccess('WALLET-TXN-SUCCESS');
+      }
+    } catch (e) {
+      // 3. لو حصل خطأ (زي رصيد غير كافي)، بيظهر في الـ State كفشل
+      state = CheckoutFailure(e.toString().replaceAll("Exception: ", ""));
     }
   }
 
@@ -31,8 +49,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
   void reset() {
     state = const CheckoutInitial();
   }
-}
-
+} 
 final checkoutProvider = StateNotifierProvider<CheckoutNotifier, CheckoutState>((ref) {
   return CheckoutNotifier();
 });
