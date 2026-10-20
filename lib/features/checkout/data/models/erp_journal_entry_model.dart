@@ -7,11 +7,11 @@ class ErpJournalEntryModel {
   final DateTime timestamp;
 
   ErpJournalEntryModel({
-    required this.entryId;
-    required this.transactionId;
-    required this.amount; 
-     required this.debitAccount;
-      required this.creditAccount;
-       required this.timestamp;
+    required this.entryId,
+    required this.transactionId,
+    required this.amount,
+     required this.debitAccount,
+      required this.creditAccount,
+       required this.timestamp
   });
 }
