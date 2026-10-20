@@ -75,6 +75,7 @@ class _DigitalWalletPaymentFormState extends ConsumerState<DigitalWalletPaymentF
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
+                // ignore: deprecated_member_use
                 color: Colors.teal.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.teal.shade200),
