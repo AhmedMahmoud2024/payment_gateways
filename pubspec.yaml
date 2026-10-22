@@ -37,6 +37,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
   meta: ^1.18.0
   equatable: ^3.0.0
+  pinput: ^7.0.0
 
 dev_dependencies:
   flutter_test:
