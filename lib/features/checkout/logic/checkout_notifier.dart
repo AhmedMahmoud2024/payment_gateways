@@ -52,12 +52,13 @@ Future<void> syncWithErpAfterSuccess(String transactionId, double amount) async 
   await erpRepo.postJournalEntry(entry);
 }
   /// ميثود تأكيد الـ OTP
-  Future<void> submitOTP(String otp) async {
+  Future<void> submitOTP(String otp,{double amount=1500.00}) async {
     state = const CheckoutLoading();
     await Future.delayed(const Duration(seconds: 1));
 
     if (otp == '1234') {
       state = const CheckoutSuccess('WALLET-TXN-55443322');
+      syncWithErpAfterSuccess('WALLET-TXN-55443322',amount);
     } else {
       state = const CheckoutFailure('رمز OTP غير صحيح، حاول مجدداً.');
     }

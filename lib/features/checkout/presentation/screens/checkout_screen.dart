@@ -65,7 +65,7 @@ class CheckoutScreen extends ConsumerWidget {
 
             // TabBar لتنقل بين طرق الدفع (تم زيادة الـ length إلى 4 لإضافة المحفظة الرقمية)
             DefaultTabController(
-              length: 4, // 👈 تم التعديل لإضافة التبويبة الرابعة
+              length: 3, // 👈 تم التعديل لإضافة التبويبة الرابعة
               child: Column(
                 children: [
                   const TabBar(
@@ -74,7 +74,7 @@ class CheckoutScreen extends ConsumerWidget {
                     isScrollable: true, // ميزة إضافية لضمان عدم ازدحام الشاشة لو الأجهزة صغيرة
                     tabs: [
                       Tab(icon: Icon(Icons.credit_card), text: 'بطاقة'),
-                      Tab(icon: Icon(Icons.account_balance_wallet), text: 'محفظة'),
+                    //  Tab(icon: Icon(Icons.account_balance_wallet), text: 'محفظة'),
                       Tab(icon: Icon(Icons.receipt), text: 'فوري'),
                       Tab(icon: Icon(Icons.account_balance), text: 'رصيد المحفظة'), // 👈 التبويبة الجديدة
                     ],
@@ -85,7 +85,7 @@ class CheckoutScreen extends ConsumerWidget {
                     child: TabBarView(
                       children: [
                         CardCheckoutForm(isLoading: isLoading),
-                        WalletCheckoutForm(isLoading: isLoading),
+                  //      WalletCheckoutForm(isLoading: isLoading),
                         FawryCheckoutForm(isLoading: isLoading),
                          DigitalWalletPaymentForm(), // 👈 الـ Form الخاصة بالـ Digital Wallet Strategy
                       ],
