@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:payment_gateways/features/checkout/data/repositories/mock_digital_wallet_repository.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_notifier.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_state.dart';
+import 'package:payment_gateways/features/checkout/logic/strategies/digital_wallet_strategy.dart';
+import 'package:payment_gateways/features/checkout/logic/strategies/payment_strategy.dart';
 import 'package:payment_gateways/features/checkout/presentation/widgets/forms/wallet_payment_form.dart';
 
 // تعريف الـ Providers المحلية للمحفظة والتحقق من الرصيد
@@ -19,46 +22,39 @@ class DigitalWalletPaymentForm extends ConsumerStatefulWidget {
 }
 
 class _DigitalWalletPaymentFormState extends ConsumerState<DigitalWalletPaymentForm> {
-  // حقول التحكم للإدخال
-  final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _transferAmountController = TextEditingController();
-  
   // حالة ظهور حقل التحويل
   bool isTransferMode = false;
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    _transferAmountController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final balance = ref.watch(availableBalanceProvider);
     final isChecking = ref.watch(isCheckingBalanceProvider);
-     final state = ref.watch(checkoutProvider);
-         final isLoading = state is CheckoutLoading;
+    final state = ref.watch(checkoutProvider);
+    final isLoading = state is CheckoutLoading;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'الدفع من رصيد المحفظة الداخلية',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+           Center(
+             child: Text(
+              'خدمات المحفظة ',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                       ),
+           ),
           const SizedBox(height: 16),
 
           // 1️⃣ أولاً: زر معرفة الرصيد المتاح
           ElevatedButton.icon(
-            onPressed: () {
+            onPressed: () async {
               ref.read(isCheckingBalanceProvider.notifier).state = true;
+              final currentBalance = ref.read(availableBalanceProvider);
               Future.delayed(const Duration(milliseconds: 500), () {
                 ref.read(isCheckingBalanceProvider.notifier).state = false;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('الرصيد المتاح حالياً: $balance EGP'),
+                    content: Text('الرصيد المتاح حالياً: $currentBalance EGP'),
                     backgroundColor: Colors.green,
                   ),
                 );
@@ -91,7 +87,7 @@ class _DigitalWalletPaymentFormState extends ConsumerState<DigitalWalletPaymentF
           if (isTransferMode) ...[
             const SizedBox(height: 12),
             TextField(
-              controller: _transferAmountController,
+              controller: ref.read(checkoutProvider.notifier).transferAmountController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 labelText: 'أدخل مبلغ التحويل',
@@ -103,21 +99,36 @@ class _DigitalWalletPaymentFormState extends ConsumerState<DigitalWalletPaymentF
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () {
-                final enteredAmount = double.tryParse(_transferAmountController.text) ?? 0.0;
+                final enteredAmount = double.tryParse(ref.read(checkoutProvider.notifier).transferAmountController.text) ?? 0.0;
+                final double currentBalance = balance;
                 
                 if (enteredAmount <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('الرجاء إدخال مبلغ صحيح للتحويل'), backgroundColor: Colors.red),
                   );
-                } else if (enteredAmount > balance) {
+                } else if (enteredAmount > currentBalance) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('عذراً، المبلغ المطلوب أكبر من الرصيد المتاح بالمحفظة!'), backgroundColor: Colors.red),
                   );
                 } else {
-                  // الانتقال للـ Tab الخاص بـ "محفظة" (رقم المحفظة و OTP) لو الـ TabController موجود
-                 Navigator.push(
-                  context,MaterialPageRoute(builder: ((context) =>  WalletCheckoutForm(isLoading: isLoading))
-                 ));
+                  /*
+                  // 1. تنفيذ استراتيجية الدفع والخصم والترحيل للـ ERP للتحويل
+                  ref.read(checkoutProvider.notifier).executeDigitalWalletPayment(
+                        DigitalWalletPaymentStrategy(digitalWalletRepository: MockDigitalWalletRepository()),
+                        enteredAmount,
+                      );
+
+                  // 2. خصم المبلغ من الرصيد المتاح لتتحدث الـ State والواجهة فوراً
+                  ref.read(availableBalanceProvider.notifier).state -= enteredAmount;
+                  
+                 */
+
+                  // 3. الانتقال للشاشة أو الـ Tab التالي
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: ((context) => WalletCheckoutForm(isLoading: isLoading,transferAmount: enteredAmount,))),
+                  );
+                  
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white),
@@ -129,7 +140,7 @@ class _DigitalWalletPaymentFormState extends ConsumerState<DigitalWalletPaymentF
 
           // 3️⃣ ثالثاً: زر السحب المباشر وإتمام الدفع (الخدمة الأساسية)
           TextField(
-            controller: _amountController,
+            controller: ref.read(checkoutProvider.notifier).amountController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'المبلغ المراد سحبه/دفعه',
@@ -140,16 +151,26 @@ class _DigitalWalletPaymentFormState extends ConsumerState<DigitalWalletPaymentF
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
-              final amount = double.tryParse(_amountController.text) ?? 0.0;
-              if (amount <= 0 || amount > balance) {
+              final amount = double.tryParse(ref.read(checkoutProvider.notifier).amountController.text) ?? 0.0;
+              final balanceValue = balance;
+              
+              if (amount <= 0 || amount > balanceValue) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('تأكد من إدخال مبلغ صالح ضمن رصيدك المتاح'), backgroundColor: Colors.red),
                 );
               } else {
-                // تنفيذ عملية الدفع المباشر والخصم والترحيل للـ ERP
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('جاري سحب مبلغ $amount EGP وإتمام الدفع...'), backgroundColor: Colors.blue),
                 );
+                
+                // تنفيذ عملية الدفع المباشر والخصم والترحيل للـ ERP
+                ref.read(checkoutProvider.notifier).executeDigitalWalletPayment(
+                  DigitalWalletPaymentStrategy(digitalWalletRepository: MockDigitalWalletRepository()),
+                  amount,
+                );
+                
+                // خصم المبلغ مباشرة من الـ State الخاص بالرصيد لتحديث الواجهة فوراً
+                ref.read(availableBalanceProvider.notifier).state -= amount;
               }
             },
             style: ElevatedButton.styleFrom(

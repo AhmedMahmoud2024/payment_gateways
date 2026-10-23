@@ -4,11 +4,12 @@ import 'package:payment_gateways/features/checkout/logic/checkout_notifier.dart'
 import 'package:payment_gateways/features/checkout/logic/forms/wallet_form_controller.dart';
 import 'package:payment_gateways/features/checkout/logic/strategies/wallet_payment_strategy.dart';
 import 'package:payment_gateways/features/checkout/logic/validators/payment_validator.dart';
+import 'package:payment_gateways/features/checkout/presentation/widgets/forms/digital_wallet_payment_form.dart';
 
 class WalletCheckoutForm extends ConsumerStatefulWidget {
   final bool isLoading;
-
-  const WalletCheckoutForm({super.key, required this.isLoading});
+ final double transferAmount;
+  const WalletCheckoutForm({super.key, required this.isLoading, required this.transferAmount});
 
   @override
   ConsumerState<WalletCheckoutForm> createState() => _WalletCheckoutFormState();
@@ -185,7 +186,8 @@ class _WalletCheckoutFormState extends ConsumerState<WalletCheckoutForm> {
                                       duration: Duration(seconds: 4),
                                     ),
                                   );
-                                     ref.read(checkoutProvider.notifier).submitOTP(otpController.text);
+                                   ref.read(availableBalanceProvider.notifier).state -= widget.transferAmount;
+                                 //    ref.read(checkoutProvider.notifier).submitOTP(otpController.text);
                                   Navigator.pop(context);
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(

@@ -76,7 +76,7 @@ class CheckoutScreen extends ConsumerWidget {
                       Tab(icon: Icon(Icons.credit_card), text: 'بطاقة'),
                     //  Tab(icon: Icon(Icons.account_balance_wallet), text: 'محفظة'),
                       Tab(icon: Icon(Icons.receipt), text: 'فوري'),
-                      Tab(icon: Icon(Icons.account_balance), text: 'رصيد المحفظة'), // 👈 التبويبة الجديدة
+                      Tab(icon: Icon(Icons.account_balance), text: 'محفظتي'), // 👈 التبويبة الجديدة
                     ],
                   ),
                   const SizedBox(height: 16),

@@ -1,13 +1,23 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:payment_gateways/features/checkout/data/models/erp_journal_entry_model.dart';
 import 'package:payment_gateways/features/checkout/data/repositories/mock_erp_integration_repository.dart';
 import 'package:payment_gateways/features/checkout/logic/strategies/digital_wallet_strategy.dart';
+import 'package:payment_gateways/features/checkout/presentation/widgets/forms/digital_wallet_payment_form.dart';
 import 'checkout_state.dart';
 import 'strategies/payment_strategy.dart';
 
 class CheckoutNotifier extends StateNotifier<CheckoutState> {
   CheckoutNotifier() : super(const CheckoutInitial());
+  final TextEditingController amountController = TextEditingController();
+  final TextEditingController transferAmountController = TextEditingController();
 
+    @override
+  void dispose() {
+    amountController.dispose();
+    transferAmountController.dispose();
+    super.dispose();
+  }
   /// الميثود بقت بتستقبل أي PaymentStrategy وتنادي عليه مباشرة
   Future<void> executePayment(PaymentStrategy strategy) async {
     state = const CheckoutLoading();
@@ -30,6 +40,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
         // 2. لو نجحت، بنحدث الحالة لنجاح المعاملة مع إرجاع كود أو رقم مرجعي وهمي
         state = const CheckoutSuccess('WALLET-TXN-SUCCESS');
         await syncWithErpAfterSuccess('WALLET-TXN-SUCCESS', amount);
+      
       }
     } catch (e) {
       // 3. لو حصل خطأ (زي رصيد غير كافي)، بيظهر في الـ State كفشل
@@ -43,7 +54,7 @@ Future<void> syncWithErpAfterSuccess(String transactionId, double amount) async 
   final entry = ErpJournalEntryModel(
     entryId: "ERP-JE-${DateTime.now().millisecondsSinceEpoch}",
     transactionId: transactionId,
-    amount: amount,
+    amount: amount , // double.tryParse(amountController.text.trim()) ?? 0.0,
     debitAccount: "Digital Wallet Asset",
     creditAccount: "Sales Revenue",
     timestamp: DateTime.now(),
@@ -52,13 +63,13 @@ Future<void> syncWithErpAfterSuccess(String transactionId, double amount) async 
   await erpRepo.postJournalEntry(entry);
 }
   /// ميثود تأكيد الـ OTP
-  Future<void> submitOTP(String otp,{double amount=1500.00}) async {
+  Future<void> submitOTP(String otp) async {
     state = const CheckoutLoading();
     await Future.delayed(const Duration(seconds: 1));
 
     if (otp == '1234') {
       state = const CheckoutSuccess('WALLET-TXN-55443322');
-      syncWithErpAfterSuccess('WALLET-TXN-55443322',amount);
+      syncWithErpAfterSuccess('WALLET-TXN-55443322', double.tryParse(amountController.text.trim()) ?? 0.0);
     } else {
       state = const CheckoutFailure('رمز OTP غير صحيح، حاول مجدداً.');
     }

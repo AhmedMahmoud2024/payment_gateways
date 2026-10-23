@@ -72,12 +72,14 @@ class FawryCheckoutForm extends ConsumerWidget {
                 : () {
                     if (fawryForm.formKey.currentState!.validate()) {
                       // تنفيذ الدفع باستراتيجية فوري مع بيانات التليفون والإيميل
+                  /*
                       ref.read(checkoutProvider.notifier).executePayment(
                             FawryPaymentStrategy(
                               phoneNumber: fawryForm.phone.text,
                               email: fawryForm.email.text,
                             ),
                           );
+                          */
                     }
                   },
             child: isLoading

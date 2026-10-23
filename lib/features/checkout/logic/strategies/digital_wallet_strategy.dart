@@ -1,12 +1,13 @@
 
 // استراتيجية الدفع بالمحفظة الرقمية
 import 'package:payment_gateways/features/checkout/data/repositories/mock_digital_wallet_repository.dart';
+import 'package:payment_gateways/features/checkout/logic/checkout_state.dart';
 import 'package:payment_gateways/features/checkout/logic/strategies/payment_strategy.dart';
 
-class DigitalWalletPaymentStrategy implements DigitalPaymentStrategy {
+class DigitalWalletPaymentStrategy implements DigitalPaymentStrategy  {
   final DigitalWalletRepository digitalWalletRepository;
 
-  DigitalWalletPaymentStrategy(this.digitalWalletRepository);
+  DigitalWalletPaymentStrategy({required this.digitalWalletRepository});
 
   @override
   Future<bool> pay(double amount) async {
@@ -24,6 +25,8 @@ class DigitalWalletPaymentStrategy implements DigitalPaymentStrategy {
     
     return true; // نجاح العملية
   }
+
+  
 
 
 }
