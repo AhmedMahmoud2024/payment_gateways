@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:payment_gateways/features/checkout/data/models/transaction_model.dart';
 import 'package:payment_gateways/features/checkout/presentation/screens/checkout_screen.dart';
 
-void main() {
+void main() async{
+ WidgetsFlutterBinding.ensureInitialized();
+ await Hive.initFlutter();
+ Hive.registerAdapter(TransactionModelAdapter());
+ await Hive.openBox<TransactionModel>('digital_wallet_transactions');
+ 
  runApp(
 const ProviderScope (
   
