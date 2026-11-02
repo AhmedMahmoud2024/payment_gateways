@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:hive/hive.dart';
+import 'package:payment_gateways/features/checkout/data/models/transaction_model.dart';
 import 'package:payment_gateways/features/checkout/data/repositories/mock_digital_wallet_repository.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_notifier.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_state.dart';
@@ -171,6 +173,25 @@ class _DigitalWalletPaymentFormState extends ConsumerState<DigitalWalletPaymentF
                 
                 // خصم المبلغ مباشرة من الـ State الخاص بالرصيد لتحديث الواجهة فوراً
                 ref.read(availableBalanceProvider.notifier).state -= amount;
+                
+                // 1. هات الـ Box أو الـ Local Data Source المتاح عندك
+final box = Hive.box<TransactionModel>('digital_wallet_transactions');
+
+// 2. هات آخر معاملة تم تخزينها (أو تقدر تعرضهم كلهم)
+final lastTransaction = box.values.isNotEmpty ? box.values.last : null;
+
+// 3. اعرض البيانات في الـ SnackBar
+ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    content: Text(
+      lastTransaction != null
+          ? 'تم الحفظ في Hive بنجاح! | المبلغ: ${lastTransaction.amount} | النوع: ${lastTransaction.type}'
+          : 'تمت العملية، ولكن لا توجد بيانات مسجلة!',
+    ),
+    backgroundColor: Colors.green,
+    duration: const Duration(seconds: 4),
+  ),
+);
               }
             },
             style: ElevatedButton.styleFrom(

@@ -1,12 +1,12 @@
 import 'package:hive/hive.dart';
 import 'package:payment_gateways/features/checkout/data/models/transaction_model.dart';
 
-abstract class DigitalWalletLocalDatatSource{
+abstract class DigitalWalletLocalDataSource{
  Future<void>  cacheTransaction(TransactionModel transaction);
  List<TransactionModel> getCachedTransaction();
 }
 
-class DigitalWalletLocalDataSourceImpl implements DigitalWalletLocalDatatSource{
+class DigitalWalletLocalDataSourceImpl implements DigitalWalletLocalDataSource{
   final Box<TransactionModel> transactionBox;
 
   DigitalWalletLocalDataSourceImpl(this.transactionBox);
