@@ -4,10 +4,9 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:hive/hive.dart';
 import 'package:payment_gateways/features/checkout/data/models/transaction_model.dart';
 import 'package:payment_gateways/features/checkout/data/repositories/mock_digital_wallet_repository.dart';
-import 'package:payment_gateways/features/checkout/logic/checkout_notifier.dart';
 import 'package:payment_gateways/features/checkout/logic/checkout_state.dart';
+import 'package:payment_gateways/features/checkout/logic/providers/providers.dart';
 import 'package:payment_gateways/features/checkout/logic/strategies/digital_wallet_strategy.dart';
-import 'package:payment_gateways/features/checkout/logic/strategies/payment_strategy.dart';
 import 'package:payment_gateways/features/checkout/presentation/widgets/forms/wallet_payment_form.dart';
 
 // تعريف الـ Providers المحلية للمحفظة والتحقق من الرصيد

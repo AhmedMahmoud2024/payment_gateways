@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../logic/checkout_notifier.dart';
+import 'package:payment_gateways/features/checkout/logic/providers/providers.dart';
 import '../../logic/checkout_state.dart';
 
 class CheckoutFeedbackCard extends ConsumerWidget {

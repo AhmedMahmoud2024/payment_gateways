@@ -1,7 +1,6 @@
 
 // استراتيجية الدفع بالمحفظة الرقمية
 import 'package:payment_gateways/features/checkout/data/repositories/mock_digital_wallet_repository.dart';
-import 'package:payment_gateways/features/checkout/logic/checkout_state.dart';
 import 'package:payment_gateways/features/checkout/logic/strategies/payment_strategy.dart';
 
 class DigitalWalletPaymentStrategy implements DigitalPaymentStrategy  {

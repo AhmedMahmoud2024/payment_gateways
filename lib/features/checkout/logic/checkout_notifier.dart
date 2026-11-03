@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:hive/hive.dart';
 import 'package:payment_gateways/features/checkout/data/models/erp_journal_entry_model.dart';
 import 'package:payment_gateways/features/checkout/data/models/transaction_model.dart';
+import 'package:payment_gateways/features/checkout/data/repositories/biometric_local_data_source.dart';
 import 'package:payment_gateways/features/checkout/data/repositories/digital_wallet_local_data_source.dart';
 import 'package:payment_gateways/features/checkout/data/repositories/mock_erp_integration_repository.dart';
 import 'package:payment_gateways/features/checkout/logic/strategies/digital_wallet_strategy.dart';
-import 'package:payment_gateways/features/checkout/presentation/widgets/forms/digital_wallet_payment_form.dart';
 import 'checkout_state.dart';
 import 'strategies/payment_strategy.dart';
 
 class CheckoutNotifier extends StateNotifier<CheckoutState> {
   final DigitalWalletLocalDataSource _localDataSource;
-  CheckoutNotifier(this._localDataSource) : super(const CheckoutInitial());
+  final BiometricService _biometricService ;
+  CheckoutNotifier(this._localDataSource ,this._biometricService) : super(const CheckoutInitial());
   final TextEditingController amountController = TextEditingController();
   final TextEditingController transferAmountController = TextEditingController();
 
@@ -36,6 +35,13 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
 
   ///  الميثود الجديدة الخاصة بالـ Digital Wallet (المحفظة الرقمية ذات الرصيد الفعلي)
   Future<void> executeDigitalWalletPayment(DigitalWalletPaymentStrategy walletStrategy, double amount) async {
+   
+   bool isAuthenticated = await _biometricService.authenticateUser();
+   
+   if(!isAuthenticated){
+      state = const CheckoutFailure('فشل التحقق البيومتري أو تم إلغاء العملية');
+      return;
+   }
     state = const CheckoutLoading();
     try {
       // 1. تنفيذ عملية الدفع والخصم من المحفظة
@@ -97,21 +103,3 @@ final transactionModel = TransactionModel(
     state = const CheckoutInitial();
   }
 } 
-
-
-// 1. Provider للـ Hive Box المفتوح
-final transactionBoxProvider = Provider<Box<TransactionModel>>((ref) {
-  return Hive.box<TransactionModel>('digital_wallet_transactions');
-});
-
-// 2. Provider للـ Local Data Source (اللي بنسألم عليه)
-final walletLocalDataSourceProvider = Provider<DigitalWalletLocalDataSource>((ref) {
-  final box = ref.read(transactionBoxProvider);
-  return DigitalWalletLocalDataSourceImpl(box);
-});
-
-final checkoutProvider = StateNotifierProvider<CheckoutNotifier, CheckoutState>((ref) {
-  final localDataSource = ref.read(walletLocalDataSourceProvider);
-
-  return CheckoutNotifier(localDataSource);
-});
