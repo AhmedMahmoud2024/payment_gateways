@@ -1,5 +1,5 @@
 package com.example.payment_gateways
 
-import io.flutter.embedding.android.FragmentActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FragmentActivity()
+class MainActivity : FlutterFragmentActivity()

@@ -41,7 +41,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
    if(!isAuthenticated){
       state = const CheckoutFailure('فشل التحقق البيومتري أو تم إلغاء العملية');
       return;
-   }
+   }else{
     state = const CheckoutLoading();
     try {
       // 1. تنفيذ عملية الدفع والخصم من المحفظة
@@ -57,6 +57,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
       state = CheckoutFailure(e.toString().replaceAll("Exception: ", ""));
     }
   }
+}
 // داخل executeDigitalWalletPayment أو بعد نجاح أي عملية دفع:
 Future<void> syncWithErpAfterSuccess(String transactionId, double amount) async {
   final erpRepo = MockErpIntegrationRepository();
