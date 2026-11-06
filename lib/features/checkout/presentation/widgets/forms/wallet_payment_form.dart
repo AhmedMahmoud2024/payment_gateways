@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:payment_gateways/features/checkout/data/models/transaction_model.dart';
+import 'package:payment_gateways/features/checkout/data/repositories/biometric_local_data_source.dart';
 import 'package:payment_gateways/features/checkout/logic/forms/wallet_form_controller.dart';
+import 'package:payment_gateways/features/checkout/logic/providers/providers.dart';
 import 'package:payment_gateways/features/checkout/logic/validators/payment_validator.dart';
 import 'package:payment_gateways/features/checkout/presentation/widgets/forms/digital_wallet_payment_form.dart';
 
@@ -178,7 +180,10 @@ class _WalletCheckoutFormState extends ConsumerState<WalletCheckoutForm> {
                                           phoneNumber: recipientPhone,
                                         ),
                                       );
+                                      
 */
+                    bool isAuthenticated = await BiometricServiceImpl().authenticateUser();
+                                if (isAuthenticated) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('تم التحويل بنجاح! 🚀 وتم ترحيل القيود للـ ERP أوتوماتيكياً'),
@@ -207,7 +212,7 @@ ScaffoldMessenger.of(context).showSnackBar(
     duration: const Duration(seconds: 4),
   ),
 );
-                                } else {
+                               } } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('كود الـ OTP غير صحيح! (جرب 1234)'),
